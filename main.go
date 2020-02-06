@@ -60,6 +60,63 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 	})
+	mux.HandleFunc("/books", func(w http.ResponseWriter, r *http.Request) {
+		book_ids, ok := r.URL.Query()["book_id"]
+		if ok {
+			book_id := book_ids[0]
+			var book Book 
+			sqlStatement := `SELECT id, book_id, title, authors, pub_year, avg_rating, img_url FROM book WHERE id=$1;`
+			row := db.QueryRow(sqlStatement, book_id)
+			err := row.Scan(&book.ID, &book.BookID, &book.Title, &book.Authors, &book.PubYear, &book.Rating, &book.ImgURL)
+
+			switch err {
+			case sql.ErrNoRows:
+				fmt.Println("did not find book with id: " + string(book_id))
+			case nil:
+				fmt.Println("query with book id: " + string(book_id))
+			default:
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return 
+			}
+
+			js, err := json.Marshal(book)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return 
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(js)
+		} else {
+			sqlStatement := `SELECT id, book_id, title, authors, pub_year, avg_rating, img_url FROM book LIMIT 10;`
+			rows, err := db.Query(sqlStatement)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			var books []Book
+			for rows.Next() {
+				var book Book 
+				err := rows.Scan(&book.ID, &book.BookID, &book.Title, &book.Authors, &book.PubYear, &book.Rating, &book.ImgURL)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				books = append(books, book)
+			}
+			err = rows.Err()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			js, err := json.Marshal(books)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(js)
+		}
+	})
 	mux.HandleFunc("/recommend", func(w http.ResponseWriter, r *http.Request) {
 		book_ids, ok := r.URL.Query()["book_id"]
 		if !ok {

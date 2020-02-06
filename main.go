@@ -17,16 +17,22 @@ const (
 
 
 type Book struct {
-	ID 		int 	`json:"book_id"`
-	Title 	string 	`json:"title"`
-	Authors string	`json:"author"`
+	ID 		int 			`json:"id"`
+	BookID  int 			`json:"book_id"`
+	Title 	string 			`json:"title"`
+	Authors string			`json:"author"`
+	PubYear sql.NullInt64	`json:"pub_year"`
+	Rating 	sql.NullFloat64 `json:"rating"`
+	ImgURL 	string			`json:"img_url"`
+
 }
 
 type Recommendation struct {
-	ID 					int 	`json:"id"`
-	ParentBookID		int 	`json:"parent_id"`
-	RecommendationID	int		`json:"rec_id"`
-	BookData			Book 	`json:"book_data"`
+	ID 					int 			`json:"id"`
+	ParentBookID		int 			`json:"parent_id"`
+	RecommendationID	int				`json:"rec_id"`
+	BookData			Book 			`json:"book_data"`
+	Rank 				sql.NullFloat64 `json:"rank"`
 }
 
 func main() {
@@ -44,6 +50,16 @@ func main() {
 	fmt.Println("Successfully Connected!")
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		message := "Welcome to the book recomender Go API!"
+		js, err := json.Marshal(message)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+	})
 	mux.HandleFunc("/recommend", func(w http.ResponseWriter, r *http.Request) {
 		book_ids, ok := r.URL.Query()["book_id"]
 		if !ok {
@@ -57,25 +73,27 @@ func main() {
 		recType := types[0]
 		log.Println("book_id is: " + string(book_id))
 		log.Println("type is : " + string(recType))
-		rows, err := db.Query("SELECT id, recommendation_id, parent_book_id FROM recommendation WHERE parent_book_id=$1 AND type=$2;", book_id, recType)
+		// Recommendations query
+		rows, err := db.Query("SELECT id, recommendation_id, parent_book_id, rank FROM recommendation WHERE parent_book_id=$1 AND type=$2;", book_id, recType)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		// defer rows.Close()
+		defer rows.Close()
 		var recs []Recommendation
 		for rows.Next() {
 			var rec Recommendation
-			err = rows.Scan(&rec.ID, &rec.RecommendationID, &rec.ParentBookID)
+			err = rows.Scan(&rec.ID, &rec.RecommendationID, &rec.ParentBookID, &rec.Rank)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			sqlStatement := `SELECT id, title, authors FROM book WHERE book_id=$1;`
+			// curr Book query
+			sqlStatement := `SELECT id, book_id, title, authors, pub_year, avg_rating, img_url FROM book WHERE book_id=$1;`
 			var book_data Book
 
 			row := db.QueryRow(sqlStatement, rec.RecommendationID)
-			err := row.Scan(&book_data.ID, &book_data.Title, &book_data.Authors);
+			err := row.Scan(&book_data.ID, &book_data.BookID, &book_data.Title, &book_data.Authors, &book_data.PubYear, &book_data.Rating, &book_data.ImgURL);
 			switch err {
 			case sql.ErrNoRows:
 				fmt.Println("no rows were returned")

@@ -9,3 +9,7 @@
 .main {
     align-items: center;
 }
+
+.rating-section {
+    vertical-align: middle;
+}

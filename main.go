@@ -51,8 +51,10 @@ func main() {
 	fmt.Println("Successfully Connected!")
 
 	mux := http.NewServeMux()
+
+	// TEMPLATE ROUTES 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		tpl := template.Must(template.ParseFiles("./templates/layout.html"))
+		tpl := template.Must(template.ParseFiles("./templates/index.html"))
 		sqlStatement := `SELECT id, book_id, title, authors, pub_year, avg_rating, img_url FROM book LIMIT 10;`
 		rows, err := db.Query(sqlStatement)
 		if err != nil {
@@ -76,6 +78,69 @@ func main() {
 		}
 		tpl.Execute(w, books)
 	})
+	mux.HandleFunc("/recommend", func(w http.ResponseWriter, r *http.Request) {
+		bookIds, ok := r.URL.Query()["book_id"]
+		if !ok {
+			return
+		}
+		// types, ok := r.URL.Query()["type"]
+		// if !ok {
+		// 	return
+		// }
+		book_id := bookIds[0]
+		// recType := types[0]
+		log.Println("book_id is: " + string(book_id))
+		// log.Println("type is : " + string(recType))
+		// Recommendations query
+		rows, err := db.Query("SELECT id, recommendation_id, parent_book_id, rank FROM recommendation WHERE parent_book_id=$1;", book_id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+		var recs []Recommendation
+		memory := make(map[int]bool)
+		for rows.Next() {
+			var rec Recommendation
+			err = rows.Scan(&rec.ID, &rec.RecommendationID, &rec.ParentBookID, &rec.Rank)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if val, ok := memory[rec.RecommendationID]; !ok {
+				fmt.Println("rec id: ", rec.RecommendationID)
+				fmt.Println("value: ", val)
+				memory[rec.RecommendationID] = true
+				// curr Book query
+				sqlStatement := `SELECT id, book_id, title, authors, pub_year, avg_rating, img_url FROM book WHERE book_id=$1;`
+				var book_data Book
+
+				row := db.QueryRow(sqlStatement, rec.RecommendationID)
+				err := row.Scan(&book_data.ID, &book_data.BookID, &book_data.Title, &book_data.Authors, &book_data.PubYear, &book_data.Rating, &book_data.ImgURL);
+				switch err {
+				case sql.ErrNoRows:
+					fmt.Println("no rows were returned")
+				case nil:
+					rec.BookData = book_data
+				default:
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				recs = append(recs, rec)
+			}
+		}
+
+		err = rows.Err()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		tpl := template.Must(template.ParseFiles("./templates/recommend.html"))
+		tpl.Execute(w, recs)
+	})
+
+	// API ROUTES
 	mux.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
 		message := "Welcome to the book recomender Go API!"
 		js, err := json.Marshal(message)

@@ -1,11 +1,12 @@
 <html>
     <head>
+        <title>... recommendations</title>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
         <link rel="stylesheet" href="/assets/styles.css" />
     </head>
     <body>
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <a class="navbar-brand" href="#"><img src="/assets/bookmark.png" height="20" />book recommender</a>
+            <a class="navbar-brand" href="/"><img src="/assets/bookmark.png" height="20" />book recommender</a>
         </nav>
 
         <div class="main container">
@@ -13,17 +14,18 @@
             <div class="card book-card" style="max-width: 540px;">
                 <div class="row no-gutters">
                     <div class="col-md-4">
-                        <img src="{{.ImgURL}}" class="card-img" alt="">
+                        <img src="{{.BookData.ImgURL}}" class="card-img" alt="">
                     </div>
                     <div class="col-md-8">
                         <div class="card-body">
-                            <h5 class="card-title">{{.Title}}</h5>
-                            <p class="card-text">{{.Authors}}</p>
-                            {{ if .PubYear.Valid }}
-                            <p class="card-text"><small class="text-muted">{{.PubYear.Int64}} | {{.Rating.Float64}}</small></p>
+                            <h5 class="card-title">{{.BookData.Title}}</h5>
+                            <p class="card-text">{{.BookData.Authors}}</p>
+                            {{ if .BookData.PubYear.Valid }}
+                                <p class="card-text rating-section"><small class="text-muted"><img src="/assets/star.png" height="10" />{{.BookData.Rating.Float64}} | {{.BookData.PubYear.Int64}}</small></p>
                             {{ else }}
-                            <p class="card-text"><small class="text-muted">{{.Rating.Float64}}</small></p>
+                                <p class="card-text rating-section"><small class="text-muted"><img src="/assets/star.png" height="10" />{{.BookData.Rating.Float64}}</small></p>
                             {{ end }}
+                            <a href="/recommend?book_id={{.BookData.BookID}}"><button class="btn btn-outline-dark">Get Recommendations</button></a>
                         </div>
                     </div>
                 </div>

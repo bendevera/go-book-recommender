@@ -1,0 +1,50 @@
+<html>
+    <head>
+        <title>book recommender</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+        <link rel="stylesheet" href="/assets/styles.css" />
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="/"><img src="/assets/bookmark.png" height="20" />book recommender</a>
+        </nav>
+
+        <div class="jumbotron bg-dark text-white">
+            <!-- <h1 class="display-4">Hello, world!</h1> -->
+            <p class="lead">This is a simple web app that utilized the goodbooks dataset to make book recommendations given a book a user likes.</p>
+            <hr class="my-4">
+            <p>Two collaborative filtering recommender methods were used (nearest neighbors and matrix factorization) for these recommendations. See how it was done in Python or how this web app uses preprocessed recommendations served with Postgres and Go.</p>
+            <p class="lead">
+                <a class="btn btn-outline-light btn-lg" href="#" role="button">Learn more</a>
+            </p>
+        </div>
+
+        <div class="main container">
+            {{range .}}
+            <div class="card book-card" style="max-width: 540px;">
+                <div class="row no-gutters">
+                    <div class="col-md-4">
+                        <img src="{{.ImgURL}}" class="card-img" alt="">
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card-body">
+                            <h5 class="card-title">{{.Title}}</h5>
+                            <p class="card-text">{{.Authors}}</p>
+                            {{ if .PubYear.Valid }}
+                                <p class="card-text rating-section"><small class="text-muted"><img src="/assets/star.png" height="15" />{{.Rating.Float64}} | {{.PubYear.Int64}}</small></p>
+                            {{ else }}
+                                <p class="card-text rating-section"><small class="text-muted"><img src="/assets/star.png" height="15" />{{.Rating.Float64}}</small></p>
+                            {{ end }}
+                            <a href="/recommend?book_id={{.BookID}}"><button class="btn btn-outline-dark">Get Recommendations</button></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{end}}
+        </div>
+        
+        <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+    </body>
+</html>

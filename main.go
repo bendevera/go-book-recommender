@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	_ "github.com/lib/pq"
 	"html/template"
+	"strconv"
 )
 
 const (
@@ -36,6 +37,11 @@ type Recommendation struct {
 	Rank 				sql.NullFloat64 `json:"rank"`
 }
 
+type Page struct {
+	Books 	[]Book 
+	Numbers	[]int 
+}
+
 func main() {
 	psqlInfo := fmt.Sprintf("host=%s port=%d dbname=%s sslmode=disable", host, port, dbname)
 	db, err := sql.Open("postgres", psqlInfo)
@@ -54,8 +60,8 @@ func main() {
 
 	// TEMPLATE ROUTES 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		tpl := template.Must(template.ParseFiles("./templates/index.html"))
-		sqlStatement := `SELECT id, book_id, title, authors, pub_year, avg_rating, img_url FROM book LIMIT 10;`
+		pages, ok := r.URL.Query()["page"]
+		sqlStatement, page := getSqlStatement(pages, ok)
 		rows, err := db.Query(sqlStatement)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -76,7 +82,11 @@ func main() {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		tpl.Execute(w, books)
+		var CurrPage Page 
+		CurrPage.Numbers = getNumbers(page)
+		CurrPage.Books = books
+		tpl := template.Must(template.ParseFiles("./templates/index.html"))
+		tpl.Execute(w, CurrPage)
 	})
 	mux.HandleFunc("/recommend", func(w http.ResponseWriter, r *http.Request) {
 		bookIds, ok := r.URL.Query()["book_id"]
@@ -272,4 +282,27 @@ func main() {
 	fs := http.FileServer(http.Dir("./assets/"))
 	mux.Handle("/assets/", http.StripPrefix("/assets/", fs))
 	log.Fatal(http.ListenAndServe(":3000", mux))
+}
+
+func getSqlStatement(pages []string, ok bool) (string, int) {
+	if !ok {
+		return `SELECT id, book_id, title, authors, pub_year, avg_rating, img_url FROM book LIMIT 10;`, 1
+	} else {
+		page, err := strconv.Atoi(pages[0])
+		if err != nil {
+			return `SELECT id, book_id, title, authors, pub_year, avg_rating, img_url FROM book LIMIT 10;`, 1
+		} else {
+			startId := (page-1) * 10
+			endId := page * 10
+			return `SELECT id, book_id, title, authors, pub_year, avg_rating, img_url FROM book WHERE id < ` + strconv.Itoa(endId) + ` AND id > ` + strconv.Itoa(startId) + `;`, page
+		}
+	}
+}
+
+func getNumbers(page int) []int {
+	if page == 1 {
+		return []int{1, 2, 3, 4}
+	} else {
+		return []int{page-1, page, page+1, page+2}
+	}
 }

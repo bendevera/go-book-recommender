@@ -13,3 +13,8 @@
 .rating-section {
     vertical-align: middle;
 }
+
+.book-page-link {
+    color: black;
+    cursor: pointer;
+}

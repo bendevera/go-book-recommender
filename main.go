@@ -7,6 +7,7 @@ import (
 	"log"
 	"encoding/json"
 	_ "github.com/lib/pq"
+	"html/template"
 )
 
 const (
@@ -51,6 +52,31 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		tpl := template.Must(template.ParseFiles("./templates/layout.html"))
+		sqlStatement := `SELECT id, book_id, title, authors, pub_year, avg_rating, img_url FROM book LIMIT 10;`
+		rows, err := db.Query(sqlStatement)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		var books []Book
+		for rows.Next() {
+			var book Book 
+			err := rows.Scan(&book.ID, &book.BookID, &book.Title, &book.Authors, &book.PubYear, &book.Rating, &book.ImgURL)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			books = append(books, book)
+		}
+		err = rows.Err()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		tpl.Execute(w, books)
+	})
+	mux.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
 		message := "Welcome to the book recomender Go API!"
 		js, err := json.Marshal(message)
 		if err != nil {
@@ -60,7 +86,7 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 	})
-	mux.HandleFunc("/books", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/books", func(w http.ResponseWriter, r *http.Request) {
 		book_ids, ok := r.URL.Query()["book_id"]
 		if ok {
 			book_id := book_ids[0]
@@ -117,7 +143,7 @@ func main() {
 			w.Write(js)
 		}
 	})
-	mux.HandleFunc("/recommend", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/recommend", func(w http.ResponseWriter, r *http.Request) {
 		book_ids, ok := r.URL.Query()["book_id"]
 		if !ok {
 			return
@@ -178,5 +204,7 @@ func main() {
 		w.Write(js)
 	})
 
+	fs := http.FileServer(http.Dir("./assets/"))
+	mux.Handle("/assets/", http.StripPrefix("/assets/", fs))
 	log.Fatal(http.ListenAndServe(":3000", mux))
 }

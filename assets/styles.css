@@ -18,3 +18,15 @@
     color: black;
     cursor: pointer;
 }
+
+.recommendation-title {
+    font-size: 1.5em;
+    max-width: 540px;
+    text-align: center;
+    margin: 2.5% auto;
+    color: rgb(51,57,64);
+}
+
+.recommendation-book {
+    color: black;
+}

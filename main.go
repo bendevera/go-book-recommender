@@ -9,6 +9,7 @@ import (
 	_ "github.com/lib/pq"
 	"html/template"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -42,6 +43,7 @@ type Page struct {
 	Recs 	[]Recommendation
 	RefBook	Book
 	Numbers	[]int 
+	Search	string
 }
 
 func main() {
@@ -98,6 +100,43 @@ func main() {
 		tpl := template.Must(template.ParseFiles("./templates/index.html"))
 		tpl.Execute(w, CurrPage)
 	})
+	mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
+		search, ok := r.URL.Query()["search-string"]
+		if !ok {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+		searchString := search[0]
+		log.Println(" /search with page #: " + searchString)
+		sqlStatement := getSearchStatement(strings.ToLower(searchString))
+		rows, err := db.Query(sqlStatement)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// generates splice of books for that page
+		var books []Book
+		for rows.Next() {
+			var book Book 
+			err := rows.Scan(&book.ID, &book.BookID, &book.Title, &book.Authors, &book.PubYear, &book.Rating, &book.ImgURL)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			books = append(books, book)
+		}
+		err = rows.Err()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// instantiates page struct for pagination numbers and books
+		var CurrPage Page 
+		CurrPage.Books = books
+		CurrPage.Search = searchString
+		tpl := template.Must(template.ParseFiles("./templates/search.html"))
+		tpl.Execute(w, CurrPage)
+	})
 	mux.HandleFunc("/recommend", func(w http.ResponseWriter, r *http.Request) {
 		// gets ref book id
 		bookIds, ok := r.URL.Query()["book_id"]
@@ -108,7 +147,7 @@ func main() {
 		log.Println(" /recommend with book_id: " + string(book_id))
 
 		// gets recommendation using ref book
-		rows, err := db.Query("SELECT id, recommendation_id, parent_book_id, rank FROM recommendation WHERE parent_book_id=$1;", book_id)
+		rows, err := db.Query("SELECT id, recommendation_id, parent_book_id, rank FROM recommendation WHERE parent_book_id=$1 LIMIT 10;", book_id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -328,4 +367,10 @@ func getNumbers(page int) []int {
 	} else {
 		return []int{page-1, page, page+1, page+2}
 	}
+}
+
+func getSearchStatement(searchString string) string {
+	result := `SELECT id, book_id, title, authors, pub_year, avg_rating, img_url FROM book WHERE LOWER(title) LIKE '%` + searchString + `%' OR LOWER(authors) LIKE '%` + searchString + `%' LIMIT 10;`
+	fmt.Println(result)
+	return result
 }

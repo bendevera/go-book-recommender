@@ -1,6 +1,6 @@
 <html>
     <head>
-        <title>book recommender</title>
+        <title>search results</title>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
         <link rel="stylesheet" href="/assets/styles.css" />
         <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon_io/apple-touch-icon.png">
@@ -17,25 +17,8 @@
             </form>
         </nav>
 
-        <div class="jumbotron bg-dark text-white">
-            <!-- <h1 class="display-4">Hello, world!</h1> -->
-            <p class="lead">This is a simple web app that utilized the goodbooks dataset to make book recommendations given a book a user likes.</p>
-            <hr class="my-4">
-            <p>Two collaborative filtering recommender methods were used (nearest neighbors and matrix factorization) for these recommendations. See how it was done in Python or how this web app uses preprocessed recommendations served with Postgres and Go.</p>
-            <p class="lead">
-                <a class="btn btn-outline-light btn-lg" href="https://github.com/bendevera/book-recommender-api" role="button">Learn more</a>
-            </p>
-        </div>
-
-        <nav>
-            <ul class="pagination justify-content-center">
-                {{ range .Numbers}}
-                    <li class="page-item"><a class="page-link book-page-link" href="/?page={{.}}">{{.}}</a></li>
-                {{end}}
-            </ul>
-        </nav>
-
         <div class="main container">
+            <h1 class="recommendation-title">results for: <span class="recommendation-book">{{.Search}}</span></h1>
             {{range .Books}}
             <div class="card book-card" style="max-width: 540px;">
                 <div class="row no-gutters">
@@ -58,14 +41,6 @@
             </div>
             {{end}}
         </div>
-
-        <nav>
-            <ul class="pagination justify-content-center">
-                {{ range .Numbers}}
-                    <li class="page-item"><a class="page-link book-page-link" href="/?page={{.}}">{{.}}</a></li>
-                {{end}}
-            </ul>
-        </nav>
         
         <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
         <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
